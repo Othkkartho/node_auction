@@ -129,6 +129,10 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
     if (good.Auctions[0] && good.Auctions[0].bid >= bid) {
       return res.status(403).send('이전 입찰가보다 높아야 합니다');
     }
+    console.log('ownerId:', good.OwnerId, ' user Id:', req.user.id);
+    if (good.OwnerId === req.user.id) {
+      return res.status(403).send('경매 등록자는 입찰할 수 없습니다.');
+    }
     const result = await Auction.create({
       bid,
       msg,

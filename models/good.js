@@ -1,4 +1,6 @@
 const Sequelize = require('sequelize');
+const {DataTypes} = require("sequelize");
+const {flatten} = require("express/lib/utils");
 
 module.exports = class Good extends Sequelize.Model {
   static init(sequelize) {
@@ -10,6 +12,11 @@ module.exports = class Good extends Sequelize.Model {
       img: {
         type: Sequelize.STRING(200),
         allowNull: true,
+      },
+      end: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 24,
       },
       price: {
         type: Sequelize.INTEGER,

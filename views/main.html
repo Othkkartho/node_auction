@@ -18,7 +18,7 @@
             <img src="/img/{{good.img}}">
           </td>
           <td>{{good.price}}</td>
-          <td class="time" data-start="{{good.createdAt}}">00:00:00</td>
+          <td class="time" data-start="{{good.createdAt}}" data-end="{{good.end}}">00:00:00</td>
           <td>
             <a href="/good/{{good.id}}" class="enter btn">입장</a>
           </td>
@@ -33,7 +33,7 @@
       document.querySelectorAll('.time').forEach((td) => {
         const end = new Date(td.dataset.start); // 경매 시작 시간
         const server = new Date(parseInt(e.data, 10));
-        end.setDate(end.getDate() + 1); // 경매 종료 시간
+        end.setHours(end.getHours() + parseInt(td.dataset.end, 10)); // 경매 종료 시간
         if (server >= end) { // 경매가 종료되었으면
           return td.textContent = '00:00:00';
         } else {

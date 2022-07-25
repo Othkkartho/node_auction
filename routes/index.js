@@ -61,11 +61,12 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
     const good = await Good.create({
       OwnerId: req.user.id,
       name,
+      end: req.body.endtime,
       img: req.file.filename,
       price,
     });
     const end = new Date();
-    end.setDate(end.getDate() + 1); // 하루 뒤
+    end.setHours(end.getHours() + good.end);
     schedule.scheduleJob(end, async () => {
       const success = await Auction.findOne({
         where: { GoodId: good.id },

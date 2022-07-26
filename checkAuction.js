@@ -1,6 +1,7 @@
 const { Op } = require('Sequelize');
 
 const { Good, Auction, User, sequelize } = require('./models');
+const schedule = require('node-schedule');
 
 module.exports = async () => {
   console.log('checkAuction');
@@ -21,11 +22,35 @@ module.exports = async () => {
           where: {GoodId: target.id},
           order: [['bid', 'DESC']],
         });
-        await Good.update({SoldId: success.UserId}, {where: {id: target.id}});
-        await User.update({
-          money: sequelize.literal(`money - ${success.bid}`),
-        }, {
-          where: {id: success.UserId},
+        if (success) {
+          await Good.update({SoldId: success.UserId}, {where: {id: target.id}});
+          await User.update({
+            money: sequelize.literal(`money - ${success.bid}`),
+          }, {
+            where: {id: success.UserId},
+          });
+        }
+        else {
+          await Good.update({soldId: target.ownerId}, {where: {id: target.id}});
+        }
+      }
+      else {
+        schedule.scheduledJobs(end, async () => {
+          const success = await Auction.findOne({
+            where: {GoodId: target.id},
+            order: [['bid', 'DESC']],
+          });
+          if (success) {
+            await Good.update({SoldId: success.UserId}, {where: {id: target.id}});
+            await User.update({
+              money: sequelize.literal(`money - ${success.bid}`),
+            }, {
+              where: {id: success.UserId},
+            });
+          }
+          else {
+            await Good.update({soldId: target.ownerId}, {where: {id: target.id}});
+          }
         });
       }
     }

@@ -4,6 +4,9 @@
   <h2>{{good.name}}</h2>
   <div>등록자: {{good.Owner.nick}}</div>
   <div>시작가: {{good.price}}원</div>
+  <span>시작까지 남은 시간: </span>
+  <strong id="starttime" data-start="{{good.createdAt}}" data-ready="{{good.start}}"></strong><br>
+  <span>종료 시간: </span>
   <strong id="time" data-start="{{good.createdAt}}" data-ready="{{good.start}}" data-end="{{good.end}}"></strong>
   <img id="good-img" src="/img/{{good.img}}">
 {% endblock %}
@@ -49,15 +52,32 @@
         });
     });
     const es = new EventSource("/sse");
-    const time = document.querySelector('#time');
+    const starttime = document.querySelector('#starttime');
     es.onmessage = (e) => {
-      const end = new Date(time.dataset.start); // 경매 시작 시간
+      const start = new Date(starttime.dataset.start); // 경매 시작 시간
       const server = new Date(parseInt(e.data, 10));
-      end.setHours(end.getHours() + parseInt(time.dataset.end) + parseInt(time.dataset.ready)); // 경매 종료 시간
-      if (server >= end) { // 경매가 종료되었으면
-        return time.textContent = '00:00:00';
+      start.setHours(start.getHours() + parseInt(starttime.dataset.ready)); // 경매 종료 시간
+      if (server >= start) { // 경매가 시작되었으면
+        return starttime.textContent = '경매중';
       } else {
-        const t = end - server;
+        const t = start - server;
+        const seconds = ('0' + Math.floor((t / 1000) % 60)).slice(-2);
+        const minutes = ('0' + Math.floor((t / 1000 / 60) % 60)).slice(-2);
+        const hours = ('0' + Math.floor((t / (1000 * 60 * 60)) % 24)).slice(-2);
+        return starttime.textContent = hours + ':' + minutes + ':' + seconds;
+      }
+    };
+
+    const es2 = new EventSource("/sse");
+    const time = document.querySelector('#time');
+    es2.onmessage = (e) => {
+      const start = new Date(time.dataset.start); // 경매 시작 시간
+      const server = new Date(parseInt(e.data, 10));
+      start.setHours(start.getHours() + parseInt(time.dataset.end) + parseInt(time.dataset.ready)); // 경매 종료 시간
+      if (server >= start) { // 경매가 종료되었으면
+        return time.textContent = '경매 종료';
+      } else {
+        const t = start - server;
         const seconds = ('0' + Math.floor((t / 1000) % 60)).slice(-2);
         const minutes = ('0' + Math.floor((t / 1000 / 60) % 60)).slice(-2);
         const hours = ('0' + Math.floor((t / (1000 * 60 * 60)) % 24)).slice(-2);

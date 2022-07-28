@@ -13,6 +13,11 @@ module.exports = class Good extends Sequelize.Model {
         type: Sequelize.STRING(200),
         allowNull: true,
       },
+      start: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+      },
       end: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -23,6 +28,11 @@ module.exports = class Good extends Sequelize.Model {
         allowNull: false,
         defaultValue: 0,
       },
+      ready: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      }
     }, {
       sequelize,
       timestamps: true,

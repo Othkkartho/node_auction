@@ -61,7 +61,8 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
     const good = await Good.create({
       OwnerId: req.user.id,
       name,
-      end: req.body.endtime,
+      start: req.body.start,
+      end: req.body.end,
       img: req.file.filename,
       price,
     });
@@ -124,13 +125,12 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }
-    if (new Date(good.createdAt).valueOf() + (24 * 60 * 60 * 1000) < new Date()) {
+    if (new Date(good.createdAt).valueOf() + (good.end*60*60*1000) < new Date()) {
       return res.status(403).send('경매가 이미 종료되었습니다');
     }
     if (good.Auctions[0] && good.Auctions[0].bid >= bid) {
       return res.status(403).send('이전 입찰가보다 높아야 합니다');
     }
-    console.log('ownerId:', good.OwnerId, ' user Id:', req.user.id);
     if (good.OwnerId === req.user.id) {
       return res.status(403).send('경매 등록자는 입찰할 수 없습니다.');
     }

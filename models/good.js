@@ -28,11 +28,6 @@ module.exports = class Good extends Sequelize.Model {
         allowNull: false,
         defaultValue: 0,
       },
-      ready: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      }
     }, {
       sequelize,
       timestamps: true,

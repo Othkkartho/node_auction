@@ -14,13 +14,13 @@
       </tr>
       {% for good in goods %}
         <tr>
-          <td>{{good.name}}</td>
+          <td class="good-name">{{good.name}}</td>
           <td>
             <img src="/img/{{good.img}}">
           </td>
           <td>{{good.price}}</td>
           <td class="starttime" data-start="{{good.createdAt}}" data-ready="{{good.start}}">00:00:00</td>
-          <td class="time" data-start="{{good.createdAt}}" data-ready="{{good.start}}" data-end="{{good.end}}">00:00:00</td>
+          <td class="time" data-start="{{good.createdAt}}" data-end="{{good.end}}">00:00:00</td>
           <td>
             <a href="/good/{{good.id}}" class="enter btn">입장</a>
           </td>
@@ -35,10 +35,11 @@
       document.querySelectorAll('.time').forEach((td) => {
         const start = new Date(td.dataset.start); // 경매 종료 시간
         const server = new Date(parseInt(e.data, 10));
-        start.setHours(start.getHours() + parseInt(td.dataset.end, 10) + parseInt(td.dataset.ready, 10)); // 경매 종료 시간
-        if (server >= startd) { // 경매가 종료되었으면
+        start.setHours(start.getHours() + parseInt(td.dataset.end, 10)); // 경매 종료 시간
+        if (server >= start) { // 경매가 종료되었으면
           return td.textContent = '경매 종료';
-        } else {
+        }
+        else {
           const t = start - server; // 경매 종료까지 남은 시간
           const seconds = ('0' + Math.floor((t / 1000) % 60)).slice(-2);
           const minutes = ('0' + Math.floor((t / 1000 / 60) % 60)).slice(-2);
@@ -56,7 +57,8 @@
         start.setHours(start.getHours() + parseInt(td.dataset.ready, 10)); // 경매 시작 시간
         if (server >= start) { // 경매가 시작되었으면
           return td.textContent = '경매중';
-        } else {
+        }
+        else {
           const t = start - server; // 경매 시작까지 남은 시간
           const seconds = ('0' + Math.floor((t / 1000) % 60)).slice(-2);
           const minutes = ('0' + Math.floor((t / 1000 / 60) % 60)).slice(-2);

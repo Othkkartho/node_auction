@@ -1,3 +1,4 @@
+const sequelize = require('sequelize');
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -100,6 +101,7 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
       });
       const end = new Date();
       end.setHours(end.getHours() + good.end);
+      // end.setMinutes(end.getMinutes()+1);
       schedule.scheduleJob(end, async () => {
         const success = await Auction.findOne({
           where: {GoodId: good.id},
@@ -113,7 +115,7 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
         });
       });
     }
-    res.redirect('/');
+    return res.redirect('/');
   } catch (error) {
     console.error(error);
     next(error);

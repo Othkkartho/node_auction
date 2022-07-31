@@ -2,12 +2,16 @@
 
 {% block good %}
   <h2>{{good.name}}</h2>
+  <input style="display: none" value="{{good.id}}" class="good-id">
+  {% if good.Owner.id === user.id %}
+    <button style="float: right" class="good-delete btn">삭제</button>
+  {% endif %}
   <div>등록자: {{good.Owner.nick}}</div>
   <div>시작가: {{good.price}}원</div>
   <span>시작까지 남은 시간: </span>
   <strong id="starttime" data-start="{{good.createdAt}}" data-ready="{{good.start}}"></strong><br>
   <span>종료 시간: </span>
-  <strong id="time" data-start="{{good.createdAt}}" data-ready="{{good.start}}" data-end="{{good.end}}"></strong>
+  <strong id="time" data-start="{{good.createdAt}}" data-end="{{good.end}}"></strong>
   <img id="good-img" src="/img/{{good.img}}">
 {% endblock %}
 
@@ -51,6 +55,16 @@
           errorMessage.textContent = '';
         });
     });
+    document.querySelectorAll('.good-delete').forEach(function (tag) {
+      tag.addEventListener('click', function () {
+        if (confirm('굿즈를 삭제하시겠습니까?')) {
+          axios.post('/good/{{good.id}}/goodelete')
+                  .then(() => {location.replace('/');})
+                  .catch((err) => {console.error(err);});
+        }
+      });
+    });
+
     const es = new EventSource("/sse");
     const starttime = document.querySelector('#starttime');
     es.onmessage = (e) => {
@@ -73,7 +87,7 @@
     es2.onmessage = (e) => {
       const start = new Date(time.dataset.start); // 경매 시작 시간
       const server = new Date(parseInt(e.data, 10));
-      start.setHours(start.getHours() + parseInt(time.dataset.end) + parseInt(time.dataset.ready)); // 경매 종료 시간
+      start.setHours(start.getHours() + parseInt(time.dataset.end)); // 경매 종료 시간
       if (server >= start) { // 경매가 종료되었으면
         return time.textContent = '경매 종료';
       } else {

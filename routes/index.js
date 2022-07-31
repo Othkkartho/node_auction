@@ -36,6 +36,34 @@ router.get('/join', isNotLoggedIn, (req, res) => {
 router.get('/good', isLoggedIn, (req, res) => {
   res.render('good', { title: '상품 등록 - NodeAuction' });
 });
+router.post('/good/:id/goodelete', isLoggedIn, async (req, res, next) => {
+  try {
+    const [good] = await Good.findAll({where: { id: req.params.id }});
+    if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) < new Date()) {
+      return res.status(403).send('<script>alert(\'경매가 시작되기 전에만 삭제가 가능합니다.\');</script>');
+    }
+    else {
+      if (fs.existsSync("uploads/"+good.img)) {
+        try {
+          fs.unlinkSync("uploads/" + good.img);
+          console.log('image delete');
+        } catch (e) {
+          console.error(e);
+          next(e);
+        }
+      }
+      else {
+        console.log('image not delete:', good.img);
+      }
+      const goodId = req.params.id;
+      await Good.destroy({where: {id: goodId}});
+      res.send("success");
+    }
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
 
 try {
   fs.readdirSync('uploads');
@@ -58,28 +86,33 @@ const upload = multer({
 router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) => {
   try {
     const { name, price } = req.body;
-    const good = await Good.create({
-      OwnerId: req.user.id,
-      name,
-      start: req.body.start,
-      end: req.body.end,
-      img: req.file.filename,
-      price,
-    });
-    const end = new Date();
-    end.setHours(end.getHours() + good.end);
-    schedule.scheduleJob(end, async () => {
-      const success = await Auction.findOne({
-        where: { GoodId: good.id },
-        order: [['bid', 'DESC']],
+    if (req.body.start >= req.body.end) {
+      return res.status(403).send("<script>alert('시작 시간이 종료 시간보다 짧아야 합니다.'); location.href='/good';</script>");
+    }
+    else {
+      const good = await Good.create({
+        OwnerId: req.user.id,
+        name,
+        start: req.body.start,
+        end: req.body.end,
+        img: req.file.filename,
+        price,
       });
-      await Good.update({ SoldId: success.UserId }, { where: { id: good.id } });
-      await User.update({
-        money: sequelize.literal(`money - ${success.bid}`),
-      }, {
-        where: { id: success.UserId },
+      const end = new Date();
+      end.setHours(end.getHours() + good.end);
+      schedule.scheduleJob(end, async () => {
+        const success = await Auction.findOne({
+          where: {GoodId: good.id},
+          order: [['bid', 'DESC']],
+        });
+        await Good.update({SoldId: success.UserId}, {where: {id: good.id}});
+        await User.update({
+          money: sequelize.literal(`money - ${success.bid}`),
+        }, {
+          where: {id: success.UserId},
+        });
       });
-    });
+    }
     res.redirect('/');
   } catch (error) {
     console.error(error);
@@ -125,7 +158,10 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }
-    if (new Date(good.createdAt).valueOf() + (good.end*60*60*1000) < new Date()) {
+    if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
+      return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
+    }
+    else if (new Date(good.createdAt).valueOf() + (good.end*60*60*1000) < new Date()) {
       return res.status(403).send('경매가 이미 종료되었습니다');
     }
     if (good.Auctions[0] && good.Auctions[0].bid >= bid) {

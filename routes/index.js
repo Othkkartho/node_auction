@@ -1,11 +1,10 @@
-const sequelize = require('sequelize');
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const schedule = require('node-schedule');
 
-const { Good, Auction, User } = require('../models');
+const { Good, Auction, User, sequelize } = require('../models');
 const { isLoggedIn, isNotLoggedIn } = require('./middlewares');
 
 const router = express.Router();
@@ -113,9 +112,15 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
         }, {
           where: {id: success.UserId},
         });
+        await User.update({
+          money: sequelize.literal(`money + ${success.bid}`),
+        }, {
+          where: {id: good.OwnerId},
+        });
       });
+      res.redirect('/');
+      console.log('testing');
     }
-    return res.redirect('/');
   } catch (error) {
     console.error(error);
     next(error);

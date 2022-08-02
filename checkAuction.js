@@ -30,7 +30,6 @@ module.exports = async () => {
           });
         }
         else {
-          console.log('1. OwnerId', target.OwnerId, 'id:', target.id);
           await Good.update({SoldId: target.OwnerId}, {where: {id: target.id}});
         }
       }

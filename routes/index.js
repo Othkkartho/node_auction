@@ -106,20 +106,26 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
           where: {GoodId: good.id},
           order: [['bid', 'DESC']],
         });
-        await Good.update({SoldId: success.UserId}, {where: {id: good.id}});
-        await User.update({
-          money: sequelize.literal(`money - ${success.bid}`),
-        }, {
-          where: {id: success.UserId},
-        });
-        await User.update({
-          money: sequelize.literal(`money + ${success.bid}`),
-        }, {
-          where: {id: good.OwnerId},
-        });
+        if (success) {
+          await Good.update({SoldId: success.UserId}, {where: {id: good.id}});
+          await User.update({
+            money: sequelize.literal(`money - ${success.bid}`),
+          }, {
+            where: {id: success.UserId},
+          });
+          await User.update({
+            money: sequelize.literal(`money + ${success.bid}`),
+          }, {
+            where: {id: good.OwnerId},
+          });
+        }
+        else {
+          console.log('3. OwnerId', good.OwnerId, 'id:', good.id);
+          await Good.update({soldId: good.OwnerId}, {where: {id: good.id}});
+          res.redirect('/');
+        }
       });
       res.redirect('/');
-      console.log('testing');
     }
   } catch (error) {
     console.error(error);
@@ -165,9 +171,9 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }
-    if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
-      return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
-    }
+    // if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
+    //   return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
+    // }
     else if (new Date(good.createdAt).valueOf() + (good.end*60*60*1000) < new Date()) {
       return res.status(403).send('경매가 이미 종료되었습니다');
     }

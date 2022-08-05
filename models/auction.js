@@ -7,10 +7,12 @@ module.exports = class Auction extends Sequelize.Model {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 0,
+        comment: "입찰 금액",
       },
       msg: {
         type: Sequelize.STRING(100),
         allowNull: true,
+        comment: "입찰 메시지",
       },
     }, {
       sequelize,

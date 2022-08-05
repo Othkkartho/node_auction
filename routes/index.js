@@ -45,7 +45,7 @@ router.post('/good/:id/goodelete', isLoggedIn, async (req, res, next) => {
     else {
       if (fs.existsSync("uploads/"+good.img)) {
         try {
-          fs.unlinkSync("uploads/" + good.img);
+          fs.unlinkSync("uploads/"+good.img);
           console.log('image delete');
         } catch (e) {
           console.error(e);
@@ -87,6 +87,15 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
   try {
     const { name, price } = req.body;
     if (req.body.start >= req.body.end) {
+      if (fs.existsSync("uploads/"+req.file.filename)) {
+        try {
+          fs.unlinkSync("uploads/"+req.file.filename);
+          console.log('image delete');
+        } catch (e) {
+          console.error(e);
+          next(e);
+        }
+      }
       return res.status(403).send("<script>alert('시작 시간이 종료 시간보다 짧아야 합니다.'); location.href='/good';</script>");
     }
     else {

@@ -3,6 +3,7 @@
 {% block content %}
   <div class="timeline">
     <form action="/good" id="good-form" method="post" enctype="multipart/form-data">
+<!--    <form id="good-form" enctype="multipart/form-data">-->
       <div class="input-group">
         <label for="good-name">상품명</label>
         <input type="text" id="good-name" name="name" required autofocus>
@@ -13,11 +14,12 @@
       </div>
       <div class="input-group">
         <label for="good-start">경매 준비 시간</label>
-        <input type="number" id="good-start" name="start" required value="12" aria-valuemin="1" aria-valuemax="72">
+        <input type="number" id="good-start" name="start" required value="12" min="1" max="72">
       </div>
       <div class="input-group">
         <label for="good-end">경매 시간</label>
-        <input type="number" id="good-end" name="end" required value="24" aria-valuemin="1" aria-valuemax="72">
+        <input type="number" id="good-end" name="end" required value="24" min="1" max="72">
+          <label>경매 준시시간보다 길어야 합니다.</label>
       </div>
       <div class="input-group">
         <label for="good-price">시작 가격</label>

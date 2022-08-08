@@ -38,22 +38,22 @@ module.exports = class User extends Sequelize.Model {
         comment: "판매한 물품의 금액",
       },
       point: {
-        type: Sequelize.MEDIUMINT.UNSIGNED,
+        type: Sequelize.INTEGER.UNSIGNED,
         allowNull: false,
         defaultValue: 0,
         comment: "경매에 사용한 금액 중 0.5% 정도의 포인트를 줌",
       },
-      authority: {
+      seller_membership: {
         type: Sequelize.STRING(50),
         allowNull: false,
-        defaultValue: 'None',
-        comment: "사용자의 권한(소비자, 판매자, 관리자 확인)",
+        defaultValue: 'user',
+        comment: "회원의 판매 맴버쉽 등급 저장(user, copper, iron, gold, diamond)",
       },
-      membership: {
+      buyer_membership: {
         type: Sequelize.STRING(50),
         allowNull: true,
-        defaultValue: 'Normal',
-        comment: "소비자, 판매자 등급 확인",
+        defaultValue: 'user',
+        comment: "회원의 소비 맴버쉽 등급 저장(user, copper, iron, gold, diamond)",
       },
     }, {
       sequelize,

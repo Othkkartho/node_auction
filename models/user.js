@@ -38,7 +38,7 @@ module.exports = class User extends Sequelize.Model {
         comment: "판매한 물품의 금액",
       },
       point: {
-        type: Sequelize.MEDIUMINT.UNSIGNED,
+        type: Sequelize.INTEGER.UNSIGNED,
         allowNull: false,
         defaultValue: 0,
         comment: "경매에 사용한 금액 중 0.5% 정도의 포인트를 줌",
@@ -46,14 +46,14 @@ module.exports = class User extends Sequelize.Model {
       seller_membership: {
         type: Sequelize.STRING(50),
         allowNull: false,
-        defaultValue: 'copper',
-        comment: "회원의 판매 맴버쉽 등급 저장(copper, iron, gold, diamond)",
+        defaultValue: 'user',
+        comment: "회원의 판매 맴버쉽 등급 저장(user, copper, iron, gold, diamond)",
       },
       buyer_membership: {
         type: Sequelize.STRING(50),
         allowNull: true,
-        defaultValue: 'copper',
-        comment: "회원의 소비 맴버쉽 등급 저장(copper, iron, gold, diamond)",
+        defaultValue: 'user',
+        comment: "회원의 소비 맴버쉽 등급 저장(user, copper, iron, gold, diamond)",
       },
     }, {
       sequelize,

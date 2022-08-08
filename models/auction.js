@@ -4,7 +4,7 @@ module.exports = class Auction extends Sequelize.Model {
   static init(sequelize) {
     return super.init({
       bid: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.BIGINT.UNSIGNED,
         allowNull: false,
         defaultValue: 0,
         comment: "입찰 금액",

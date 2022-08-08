@@ -223,12 +223,23 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
       include: { model: Auction },
       order: [[{ model: Auction }, 'bid', 'DESC']],
     });
+    let user = await User.findOne({where: {id: req.user.id}, order: [['id', 'DESC']],});
+    switch (user.buyer_membership) {
+      case 'copper': buyer_commission = 0.15; point = 0.1; break;
+      case 'iron': buyer_commission = 0.13; point = 0.2; break;
+      case 'gold': buyer_commission = 0.10; point = 0.4; break;
+      case 'diamond': buyer_commission = 0.05; point = 0.7; break;
+      default: buyer_commission = 0.20; point = 0.05; break;
+    }
+    if (user.money < (bid + (bid * buyer_commission))) {
+      return res.status(403).send('입찰 예청 금액이 예치금보다 높습니다.');
+    }
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }
-    // if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
-    //   return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
-    // }
+    if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
+      return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
+    }
     else if (new Date(good.createdAt).valueOf() + (good.end*60*60*1000) < new Date()) {
       return res.status(403).send('경매가 이미 종료되었습니다');
     }

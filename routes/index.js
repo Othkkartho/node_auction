@@ -86,6 +86,7 @@ const upload = multer({
 router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) => {
   try {
     const { name, price } = req.body;
+    let user = await User.findOne({where: {id: req.user.id}, order: [['id', 'DESC']],});
     if (req.body.start >= req.body.end) {
       if (fs.existsSync("uploads/"+req.file.filename)) {
         try {
@@ -97,6 +98,18 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
         }
       }
       return res.status(403).send("<script>alert('시작 시간이 종료 시간보다 짧아야 합니다.'); location.href='/good';</script>");
+    }
+    else if (user.money < price) {
+      if (fs.existsSync("uploads/"+req.file.filename)) {
+        try {
+          fs.unlinkSync("uploads/"+req.file.filename);
+          console.log('image delete');
+        } catch (e) {
+          console.error(e);
+          next(e);
+        }
+      }
+      return res.status(403).send("<script>alert('예치금이 등록 수수료(물건의 10%)보다 적습니다.'); location.href='/good';</script>");
     }
     else {
       let seller_commission = 0;
@@ -213,9 +226,9 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }
-    if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
-      return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
-    }
+    // if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
+    //   return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
+    // }
     else if (new Date(good.createdAt).valueOf() + (good.end*60*60*1000) < new Date()) {
       return res.status(403).send('경매가 이미 종료되었습니다');
     }

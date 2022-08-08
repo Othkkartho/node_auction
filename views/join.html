@@ -5,19 +5,19 @@
     <form action="/auth/join" id="join-form" method="post">
       <div class="input-group">
         <label for="join-email">이메일</label>
-        <input type="email" id="join-email" name="email">
+        <input type="email" id="join-email" name="email" required>
       </div>
       <div class="input-group">
         <label for="join-nick">닉네임</label>
-        <input type="text" id="join-nick" name="nick">
+        <input type="text" id="join-nick" name="nick" required>
       </div>
       <div class="input-group">
         <label for="join-password">비밀번호</label>
-        <input type="password" id="join-password" name="password">
+        <input type="password" id="join-password" name="password" required>
       </div>
       <div class="input-group">
         <label for="join-money">보유자산</label>
-        <input type="number" id="join-money" name="money">
+        <input type="number" id="join-money" name="money" required>
       </div>
       <button id="join-btn" class="btn" type="submit">회원가입</button>
     </form>

@@ -110,15 +110,17 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
         img: req.file.filename,
         price,
       });
+      await User.update({money: sequelize.literal(`money - (${good.price} * 0.1)`)}, {where: {id: good.OwnerId}});
       const end = new Date();
-      // end.setHours(end.getHours() + good.end);
-      end.setMinutes(end.getMinutes()+1);
+      end.setHours(end.getHours() + good.end);
+      // end.setMinutes(end.getMinutes()+1);
       schedule.scheduleJob(end, async () => {
         const success = await Auction.findOne({
           where: {GoodId: good.id},
           order: [['bid', 'DESC']],
         });
         if (success) {
+          await User.update({money: sequelize.literal(`money + (${good.price} * 0.1)`)}, {where: {id: good.OwnerId}});
           let user1 = await User.findOne({where: {id: success.UserId}, order: [['id', 'DESC']],});
           switch (user1.buyer_membership) {
             case 'copper': buyer_commission = 0.15; point = 0.1; break;
@@ -161,9 +163,8 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
           else if (user2.sell_money > 1000000000) { await  User.update({seller_membership: 'diamond'}, {where: {id: good.OwnerId}}); }
         }
         else {
-          console.log('3. OwnerId', good.OwnerId, 'id:', good.id);
+          await User.update({money: sequelize.literal(`money + (${good.price} * 0.1)`)}, {where: {id: good.OwnerId}});
           await Good.update({soldId: good.OwnerId}, {where: {id: good.id}});
-          res.redirect('/');
         }
       });
       res.redirect('/');

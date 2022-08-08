@@ -86,6 +86,7 @@ const upload = multer({
 router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) => {
   try {
     const { name, price } = req.body;
+    let user = await User.findOne({where: {id: req.user.id}, order: [['id', 'DESC']],});
     if (req.body.start >= req.body.end) {
       if (fs.existsSync("uploads/"+req.file.filename)) {
         try {
@@ -97,6 +98,18 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
         }
       }
       return res.status(403).send("<script>alert('시작 시간이 종료 시간보다 짧아야 합니다.'); location.href='/good';</script>");
+    }
+    else if (user.money < price) {
+      if (fs.existsSync("uploads/"+req.file.filename)) {
+        try {
+          fs.unlinkSync("uploads/"+req.file.filename);
+          console.log('image delete');
+        } catch (e) {
+          console.error(e);
+          next(e);
+        }
+      }
+      return res.status(403).send("<script>alert('예치금이 등록 수수료(물건의 10%)보다 적습니다.'); location.href='/good';</script>");
     }
     else {
       let seller_commission = 0;
@@ -210,6 +223,17 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
       include: { model: Auction },
       order: [[{ model: Auction }, 'bid', 'DESC']],
     });
+    let user = await User.findOne({where: {id: req.user.id}, order: [['id', 'DESC']],});
+    switch (user.buyer_membership) {
+      case 'copper': buyer_commission = 0.15; point = 0.1; break;
+      case 'iron': buyer_commission = 0.13; point = 0.2; break;
+      case 'gold': buyer_commission = 0.10; point = 0.4; break;
+      case 'diamond': buyer_commission = 0.05; point = 0.7; break;
+      default: buyer_commission = 0.20; point = 0.05; break;
+    }
+    if (user.money < (bid + (bid * buyer_commission))) {
+      return res.status(403).send('입찰 예청 금액이 예치금보다 높습니다.');
+    }
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }

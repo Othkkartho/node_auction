@@ -5,7 +5,8 @@ const fs = require('fs');
 const schedule = require('node-schedule');
 
 const { Good, Auction, User, sequelize } = require('../models');
-const { isLoggedIn, isNotLoggedIn } = require('./middlewares');
+const { isLoggedIn, isNotLoggedIn, find_user, buyer_member, seller_member, membership_upgrade } = require('./middlewares');
+const {number} = require("nunjucks/src/tests");
 
 const router = express.Router();
 
@@ -43,18 +44,7 @@ router.post('/good/:id/goodelete', isLoggedIn, async (req, res, next) => {
       return res.status(403).send('<script>alert(\'경매가 시작되기 전에만 삭제가 가능합니다.\');</script>');
     }
     else {
-      if (fs.existsSync("uploads/"+good.img)) {
-        try {
-          fs.unlinkSync("uploads/"+good.img);
-          console.log('image delete');
-        } catch (e) {
-          console.error(e);
-          next(e);
-        }
-      }
-      else {
-        console.log('image not delete:', good.img);
-      }
+      img_delete(good.img);
       const goodId = req.params.id;
       await Good.destroy({where: {id: goodId}});
       res.send("success");
@@ -88,33 +78,14 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
     const { name, price } = req.body;
     let user = await User.findOne({where: {id: req.user.id}, order: [['id', 'DESC']],});
     if (req.body.start >= req.body.end) {
-      if (fs.existsSync("uploads/"+req.file.filename)) {
-        try {
-          fs.unlinkSync("uploads/"+req.file.filename);
-          console.log('image delete');
-        } catch (e) {
-          console.error(e);
-          next(e);
-        }
-      }
+      img_delete(req.file.filename);
       return res.status(403).send("<script>alert('시작 시간이 종료 시간보다 짧아야 합니다.'); location.href='/good';</script>");
     }
     else if (user.money < price) {
-      if (fs.existsSync("uploads/"+req.file.filename)) {
-        try {
-          fs.unlinkSync("uploads/"+req.file.filename);
-          console.log('image delete');
-        } catch (e) {
-          console.error(e);
-          next(e);
-        }
-      }
+      img_delete(req.file.filename);
       return res.status(403).send("<script>alert('예치금이 등록 수수료(물건의 10%)보다 적습니다.'); location.href='/good';</script>");
     }
     else {
-      let seller_commission = 0;
-      let buyer_commission = 0;
-      let point = 0;
       const good = await Good.create({
         OwnerId: req.user.id,
         name,
@@ -125,8 +96,8 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
       });
       await User.update({money: sequelize.literal(`money - (${good.price} * 0.1)`)}, {where: {id: good.OwnerId}});
       const end = new Date();
-      end.setHours(end.getHours() + good.end);
-      // end.setMinutes(end.getMinutes()+1);
+      // end.setHours(end.getHours() + good.end);
+      end.setMinutes(end.getMinutes()+1);
       schedule.scheduleJob(end, async () => {
         const success = await Auction.findOne({
           where: {GoodId: good.id},
@@ -134,23 +105,13 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
         });
         if (success) {
           await User.update({money: sequelize.literal(`money + (${good.price} * 0.1)`)}, {where: {id: good.OwnerId}});
-          let user1 = await User.findOne({where: {id: success.UserId}, order: [['id', 'DESC']],});
-          switch (user1.buyer_membership) {
-            case 'copper': buyer_commission = 0.15; point = 0.1; break;
-            case 'iron': buyer_commission = 0.13; point = 0.2; break;
-            case 'gold': buyer_commission = 0.10; point = 0.4; break;
-            case 'diamond': buyer_commission = 0.05; point = 0.7; break;
-            default: buyer_commission = 0.20; point = 0.05; break;
-          }
+          let user1 = await find_user(success.UserId);
+          const buyer = buyer_member(user1);
+          const buyer_commission = buyer[0];
+          const point = buyer[1];
 
-          let user2 = await User.findOne({where: {id: good.OwnerId}, order: [['id', 'DESC']],});
-          switch (user2.seller_membership) {
-            case 'copper': seller_commission = 0.15; break;
-            case 'iron': seller_commission = 0.13; break;
-            case 'gold': seller_commission = 0.10; break;
-            case 'diamond': seller_commission = 0.05; break;
-            default: seller_commission = 0.20; break;
-          }
+          let user2 = await find_user(good.OwnerId);
+          const seller_commission = seller_member(user2);
 
           await Good.update({SoldId: success.UserId}, {where: {id: good.id}});
           await User.update({
@@ -163,17 +124,12 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
             sell_money: sequelize.literal(`sell_money + ${success.bid}`),
           }, {where: {id: good.OwnerId},});
 
-          user1 = await User.findOne({where: {id: success.UserId}, order: [['id', 'DESC']],});
-          user2 = await User.findOne({where: {id: good.OwnerId}, order: [['id', 'DESC']],});
+          user1 = await find_user(success.UserId);
+          user2 = await find_user(good.OwnerId);
 
-          if (user1.spend_money > 1000 && user1.spend_money < 100000) { await User.update({buyer_membership: 'copper'}, {where: {id: success.UserId}}); }
-          else if (user1.spend_money > 100000 && user1.spend_money < 10000000) { await User.update({buyer_membership: 'iron'}, {where: {id: success.UserId}}); }
-          else if (user1.spend_money > 10000000 && user1.spend_money < 1000000000) { await User.update({buyer_membership: 'gold'}, {where: {id: success.UserId}}); }
-          else if (user1.spend_money > 1000000000) { await User.update({buyer_membership: 'diamond'}, {where: {id: success.UserId}}); }
-          if (user2.sell_money > 1000 && user2.sell_money < 100000) { await  User.update({seller_membership: 'copper'}, {where: {id: good.OwnerId}}); }
-          else if (user2.sell_money > 100000 && user2.sell_money < 10000000) { await  User.update({seller_membership: 'iron'}, {where: {id: good.OwnerId}}); }
-          else if (user2.sell_money > 10000000 && user2.sell_money < 1000000000) { await  User.update({seller_membership: 'gold'}, {where: {id: good.OwnerId}}); }
-          else if (user2.sell_money > 1000000000) { await  User.update({seller_membership: 'diamond'}, {where: {id: good.OwnerId}}); }
+          const membership = membership_upgrade(user1, user2);
+          await User.update({buyer_membership:  membership[0]}, {where: {id: success.UserId}});
+          await User.update({seller_membership: membership[1]}, {where: {id: good.OwnerId}});
         }
         else {
           await User.update({money: sequelize.literal(`money + (${good.price} * 0.1)`)}, {where: {id: good.OwnerId}});
@@ -217,30 +173,24 @@ router.get('/good/:id', isLoggedIn, async (req, res, next) => {
 
 router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
   try {
-    const { bid, msg } = req.body;
+    const {bid, msg} = req.body;
     const good = await Good.findOne({
-      where: { id: req.params.id },
-      include: { model: Auction },
-      order: [[{ model: Auction }, 'bid', 'DESC']],
+      where: {id: req.params.id},
+      include: {model: Auction},
+      order: [[{model: Auction}, 'bid', 'DESC']],
     });
-    let user = await User.findOne({where: {id: req.user.id}, order: [['id', 'DESC']],});
-    switch (user.buyer_membership) {
-      case 'copper': buyer_commission = 0.15; point = 0.1; break;
-      case 'iron': buyer_commission = 0.13; point = 0.2; break;
-      case 'gold': buyer_commission = 0.10; point = 0.4; break;
-      case 'diamond': buyer_commission = 0.05; point = 0.7; break;
-      default: buyer_commission = 0.20; point = 0.05; break;
-    }
-    if (user.money < (bid + (bid * buyer_commission))) {
+    const user = await find_user(req.user.id);
+    const buyer = buyer_member(user);
+    if (user.money < (number(bid) + (bid * buyer[0]))) {
       return res.status(403).send('입찰 예청 금액이 예치금보다 높습니다.');
     }
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }
-    if (new Date(good.createdAt).valueOf() + (good.start*60*60*1000) > new Date()) {
-      return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
-    }
-    else if (new Date(good.createdAt).valueOf() + (good.end*60*60*1000) < new Date()) {
+    // if (new Date(good.createdAt).valueOf() + (good.start * 60 * 60 * 1000) > new Date()) {
+    //   return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
+    // }
+    else if (new Date(good.createdAt).valueOf() + (good.end * 60 * 60 * 1000) < new Date()) {
       return res.status(403).send('경매가 이미 종료되었습니다');
     }
     if (good.Auctions[0] && good.Auctions[0].bid >= bid) {
@@ -281,5 +231,20 @@ router.get('/list', isLoggedIn, async (req, res, next) => {
     next(error);
   }
 });
+
+function img_delete(filename) {
+  if (fs.existsSync("uploads/"+filename)) {
+    try {
+      fs.unlinkSync("uploads/"+filename);
+      console.log('image delete');
+    } catch (e) {
+      console.error(e);
+      next(e);
+    }
+  }
+  else {
+    console.log('image not delete:', filename);
+  }
+}
 
 module.exports = router;

@@ -2,6 +2,7 @@ const { Op } = require('Sequelize');
 
 const { Good, Auction, User, sequelize } = require('./models');
 const schedule = require('node-schedule');
+const {find_user, membership_upgrade, buyer_member, seller_member} = require("./routes/middlewares");
 
 module.exports = async () => {
   console.log('checkAuction');
@@ -13,8 +14,8 @@ module.exports = async () => {
         where: {GoodId: target.id},
         order: [['bid', 'DESC']],
       });
-      end.setHours(end.getHours() + target.end);
-      // end.setMinutes(end.getMinutes()+1);
+      // end.setHours(end.getHours() + target.end);
+      end.setMinutes(end.getMinutes()+1);
       if (new Date() > end) {
         const success = await Auction.findOne({
           where: {GoodId: target.id},
@@ -22,23 +23,13 @@ module.exports = async () => {
         });
         if (success) {
           await User.update({money: sequelize.literal(`money + (${target.price} * 0.1)`)}, {where: {id: target.OwnerId}});
-          let user1 = await User.findOne({where: {id: success.UserId}, order: [['id', 'DESC']],});
-          switch (user1.buyer_membership) {
-            case 'copper': buyer_commission = 0.15; point = 0.1; break;
-            case 'iron': buyer_commission = 0.13; point = 0.2; break;
-            case 'gold': buyer_commission = 0.10; point = 0.4; break;
-            case 'diamond': buyer_commission = 0.05; point = 0.7; break;
-            default: buyer_commission = 0.20; point = 0.05; break;
-          }
+          let user1 = await find_user(success.UserId);
+          const buyer = buyer_member(user1);
+          const buyer_commission = buyer[0];
+          const point = buyer[1];
 
-          let user2 = await User.findOne({where: {id: target.OwnerId}, order: [['id', 'DESC']],});
-          switch (user2.seller_membership) {
-            case 'copper': seller_commission = 0.15; break;
-            case 'iron': seller_commission = 0.13; break;
-            case 'gold': seller_commission = 0.10; break;
-            case 'diamond': seller_commission = 0.05; break;
-            default: seller_commission = 0.20; break;
-          }
+          let user2 = await find_user(target.OwnerId);
+          const seller_commission = seller_member(user2);
 
           await Good.update({SoldId: success.UserId}, {where: {id: target.id}});
           await User.update({
@@ -51,17 +42,12 @@ module.exports = async () => {
             sell_money: sequelize.literal(`sell_money + ${success.bid}`),
           }, {where: {id: target.OwnerId},});
 
-          user1 = await User.findOne({where: {id: success.UserId}, order: [['id', 'DESC']],});
-          user2 = await User.findOne({where: {id: target.OwnerId}, order: [['id', 'DESC']],});
+          user1 = await find_user(success.UserId);
+          user2 = await find_user(target.OwnerId);
 
-          if (user1.spend_money > 1000 && user1.spend_money < 100000) { await User.update({buyer_membership: 'copper'}, {where: {id: success.UserId}}); }
-          else if (user1.spend_money > 100000 && user1.spend_money < 10000000) { await User.update({buyer_membership: 'iron'}, {where: {id: success.UserId}}); }
-          else if (user1.spend_money > 10000000 && user1.spend_money < 1000000000) { await User.update({buyer_membership: 'gold'}, {where: {id: success.UserId}}); }
-          else if (user1.spend_money > 1000000000) { await User.update({buyer_membership: 'diamond'}, {where: {id: success.UserId}}); }
-          if (user2.sell_money > 1000 && user2.sell_money < 100000) { await  User.update({seller_membership: 'copper'}, {where: {id: target.OwnerId}}); }
-          else if (user2.sell_money > 100000 && user2.sell_money < 10000000) { await  User.update({seller_membership: 'iron'}, {where: {id: target.OwnerId}}); }
-          else if (user2.sell_money > 10000000 && user2.sell_money < 1000000000) { await  User.update({seller_membership: 'gold'}, {where: {id: target.OwnerId}}); }
-          else if (user2.sell_money > 1000000000) { await  User.update({seller_membership: 'diamond'}, {where: {id: target.OwnerId}}); }
+          const membership = membership_upgrade(user1, user2);
+          await User.update({buyer_membership:  membership[0]}, {where: {id: success.UserId}});
+          await User.update({seller_membership: membership[1]}, {where: {id: target.OwnerId}});
         }
         else {
           await User.update({money: sequelize.literal(`money + (${target.price} * 0.1)`)}, {where: {id: target.OwnerId}});

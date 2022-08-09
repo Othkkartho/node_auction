@@ -18,6 +18,8 @@
         <div class="profile">
           {% if user and user.id %}
             <div class="user-name">안녕하세요 {{user.nick}}님</div>
+            <div class="user-buymem">입찰자 등급: {{user.buyer_membership}}</div>
+            <div class="user-sellmem">판매자 등급: {{user.seller_membership}}</div>
             <div class="user-money">보유 자산: {{user.money}}원</div>
             <input type="hidden" id="my-id" value="user.id">
             <a href="/auth/logout" id="logout" class="btn">로그아웃</a>

@@ -45,7 +45,7 @@ input, textarea {
   border: 1px solid silver;
   background: yellow;
 }
-.user-name, .user-money {
+.user-name, .user-money, .user-buymem, .user-sellmem {
   font-weight: bold;
   font-size: 18px;
   margin-bottom: 10px;

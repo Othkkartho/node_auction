@@ -14,8 +14,8 @@ module.exports = async () => {
         where: {GoodId: target.id},
         order: [['bid', 'DESC']],
       });
-      // end.setHours(end.getHours() + target.end);
-      end.setMinutes(end.getMinutes()+1);
+      end.setHours(end.getHours() + target.end);
+      // end.setMinutes(end.getMinutes()+1);
       if (new Date() > end) {
         const success = await Auction.findOne({
           where: {GoodId: target.id},

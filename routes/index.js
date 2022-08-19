@@ -96,8 +96,8 @@ router.post('/good', isLoggedIn, upload.single('img'), async (req, res, next) =>
       });
       await User.update({money: sequelize.literal(`money - (${good.price} * 0.1)`)}, {where: {id: good.OwnerId}});
       const end = new Date();
-      // end.setHours(end.getHours() + good.end);
-      end.setMinutes(end.getMinutes()+1);
+      end.setHours(end.getHours() + good.end);
+      // end.setMinutes(end.getMinutes()+1);
       schedule.scheduleJob(end, async () => {
         const success = await Auction.findOne({
           where: {GoodId: good.id},
@@ -187,9 +187,9 @@ router.post('/good/:id/bid', isLoggedIn, async (req, res, next) => {
     if (good.price >= bid) {
       return res.status(403).send('시작 가격보다 높게 입찰해야 합니다.');
     }
-    // if (new Date(good.createdAt).valueOf() + (good.start * 60 * 60 * 1000) > new Date()) {
-    //   return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
-    // }
+    if (new Date(good.createdAt).valueOf() + (good.start * 60 * 60 * 1000) > new Date()) {
+      return res.status(403).send('경매가 시작된 후 입찰을 진행해 주시길 바랍니다.');
+    }
     else if (new Date(good.createdAt).valueOf() + (good.end * 60 * 60 * 1000) < new Date()) {
       return res.status(403).send('경매가 이미 종료되었습니다');
     }
